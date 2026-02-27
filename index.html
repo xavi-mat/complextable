@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ComplexTable Demo</title>
+  <link rel="stylesheet" href="src/complextable.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      background: #f0f2f5;
+      padding: 24px;
+      margin: 0;
+    }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    p  { margin: 0 0 16px; color: #555; }
+    h2 { margin: 24px 0 8px; font-size: 16px; color: #333; }
+
+    .demo-block {
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    /* The table container must have an explicit height for the vertical
+       scrollbar to appear.  Width can be constrained by the page layout. */
+    .ct-demo {
+      height: 280px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* Minimal theming via CSS custom properties */
+    #demo2 {
+      --ct-header-bg    : #1a73e8;
+      --ct-corner-bg    : #1558b0;
+      --ct-fixed-col-bg : #e8f0fe;
+      --ct-cell-bg      : #fff;
+      height: 220px;
+    }
+    #demo2 .ct-fixed-top { color: #fff; }
+    #demo2 .ct-fixed-top.ct-fixed-left,
+    #demo2 .ct-fixed-top.ct-fixed-right { color: #fff; }
+
+    .badge {
+      display: inline-block;
+      background: #1a73e8;
+      color: #fff;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>ComplexTable</h1>
+<p>Complex HTML table with fixed columns, fixed header rows, and a horizontal scrollbar on top.</p>
+
+<!-- ── Demo 1: default styling ─────────────────────────────────────────── -->
+<div class="demo-block">
+  <h2>Demo 1 — 1 fixed left column, 1 fixed right column, 1 header row
+    <span class="badge">15 cols × 20 rows</span>
+  </h2>
+  <div id="demo1" class="ct-demo"></div>
+</div>
+
+<!-- ── Demo 2: blue theme, 2 fixed left columns ────────────────────────── -->
+<div class="demo-block">
+  <h2>Demo 2 — 2 fixed left columns, 1 fixed right column, themed
+    <span class="badge">12 cols × 8 rows</span>
+  </h2>
+  <div id="demo2" class="ct-demo"></div>
+</div>
+
+<!-- ── Demo 3: multiple fixed header rows ──────────────────────────────── -->
+<div class="demo-block">
+  <h2>Demo 3 — 2 fixed header rows, 1 fixed left column
+    <span class="badge">10 cols × 12 rows</span>
+  </h2>
+  <div id="demo3" class="ct-demo"></div>
+</div>
+
+<script src="src/complextable.js"></script>
+<script>
+/* ── Helpers ──────────────────────────────────────────────────────────── */
+function range(n) {
+  return Array.from({ length: n }, function (_, i) { return i; });
+}
+
+/* ── Demo 1 ───────────────────────────────────────────────────────────── */
+(function () {
+  var COLS = 15, ROWS = 20;
+
+  var header = range(COLS).map(function (c) {
+    if (c === 0)       return { type: 'th', content: '#' };
+    if (c === COLS-1)  return { type: 'th', content: 'Actions' };
+    return { type: 'th', content: 'Column ' + c };
+  });
+
+  var rows = [header];
+  range(ROWS).forEach(function (r) {
+    var row = range(COLS).map(function (c) {
+      if (c === 0) {
+        return { type: 'td', content: String(r + 1), classes: ['row-num'] };
+      }
+      if (c === COLS - 1) {
+        return {
+          type: 'td',
+          content: '<button onclick="alert(\'Row ' + (r+1) + '!\')">Edit</button>',
+          attrs: { 'data-row': r + 1 }
+        };
+      }
+      return {
+        type: 'td',
+        content: 'R' + (r+1) + 'C' + c,
+        attrs: { 'data-row': r + 1, 'data-col': c }
+      };
+    });
+    rows.push(row);
+  });
+
+  new ComplexTable('#demo1', { fixedLeft: 1, fixedRight: 1, fixedTop: 1, data: rows });
+}());
+
+/* ── Demo 2 ───────────────────────────────────────────────────────────── */
+(function () {
+  var COLS = 12, ROWS = 8;
+  var names = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank', 'Grace', 'Heidi'];
+  var depts = ['Eng', 'Design', 'Product', 'Marketing', 'Sales', 'HR', 'Finance', 'Legal'];
+
+  var header = range(COLS).map(function (c) {
+    var labels = ['#', 'Name', 'Department', 'Q1', 'Q2', 'Q3', 'Q4', 'YTD', 'Budget', 'Forecast', 'Delta', 'Status'];
+    return { type: 'th', content: labels[c] || ('Col ' + c) };
+  });
+
+  var rows = [header];
+  range(ROWS).forEach(function (r) {
+    var row = range(COLS).map(function (c) {
+      if (c === 0)  return { type: 'td', content: String(r + 1) };
+      if (c === 1)  return { type: 'td', content: names[r] };
+      if (c === 2)  return { type: 'td', content: depts[r] };
+      if (c === COLS - 1) return { type: 'td', content: r % 3 === 0 ? '✅' : r % 3 === 1 ? '⚠️' : '❌' };
+      return { type: 'td', content: String(Math.floor(Math.random() * 9000 + 1000)) };
+    });
+    rows.push(row);
+  });
+
+  new ComplexTable('#demo2', { fixedLeft: 2, fixedRight: 1, fixedTop: 1, data: rows });
+}());
+
+/* ── Demo 3 ───────────────────────────────────────────────────────────── */
+(function () {
+  var COLS = 10, ROWS = 12;
+
+  /* Two header rows: group header + column header */
+  var groupRow = [
+    { type: 'th', content: 'ID',     rowspan: 2 },
+    { type: 'th', content: 'Group A', colspan: 3 },
+    { type: 'th', content: 'Group B', colspan: 3 },
+    { type: 'th', content: 'Group C', colspan: 3 }
+  ];
+  var colRow = [
+    { type: 'th', content: 'Alpha' },
+    { type: 'th', content: 'Beta'  },
+    { type: 'th', content: 'Gamma' },
+    { type: 'th', content: 'Delta' },
+    { type: 'th', content: 'Epsilon'},
+    { type: 'th', content: 'Zeta'  },
+    { type: 'th', content: 'Eta'   },
+    { type: 'th', content: 'Theta' },
+    { type: 'th', content: 'Iota'  }
+  ];
+
+  var rows = [groupRow, colRow];
+  range(ROWS).forEach(function (r) {
+    var row = range(COLS).map(function (c) {
+      if (c === 0) return { type: 'td', content: 'ID-' + (r + 1) };
+      return { type: 'td', content: (Math.random() * 100).toFixed(1) };
+    });
+    rows.push(row);
+  });
+
+  new ComplexTable('#demo3', { fixedLeft: 1, fixedRight: 0, fixedTop: 2, data: rows });
+}());
+</script>
+</body>
+</html>
