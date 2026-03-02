@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gradebook Skeleton</title>
+
+<style>
+
+/* =========================================================
+   CSS VARIABLES (ALL COSMETIC + STRUCTURAL)
+========================================================= */
+:root {
+
+  /* ---------- Structural sizing ---------- */
+  --col-width-default: 100px;
+  --row-height-1line: 40px;
+  --row-height-2lines: 60px;
+
+  --header-height: 50px;
+  --footer-height: 40px;
+
+  /* ---------- Cosmetic ---------- */
+  --color-bg: #ffffff;
+  --color-border: #ccc;
+  --color-header: #f3f3f3;
+  --color-sticky: #fafafa;
+
+  --font-main: Arial, sans-serif;
+  --cell-padding: 6px;
+}
+
+/* =========================================================
+   PAGE LAYOUT (STRUCTURAL)
+========================================================= */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-main);
+}
+
+.page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  height: var(--header-height);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  background: var(--color-header);
+}
+
+footer {
+  height: var(--footer-height);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  background: var(--color-header);
+}
+
+/* =========================================================
+   MAIN AREA
+========================================================= */
+
+main {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---------- TOP SCROLLBAR ---------- */
+
+.top-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 16px;
+}
+
+.top-scroll-inner {
+  height: 1px;
+}
+
+/* ---------- TABLE SCROLL CONTAINER ---------- */
+
+.table-container {
+  flex-grow: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+
+  /* hide horizontal scrollbar */
+  scrollbar-width: none;
+}
+
+.table-container::-webkit-scrollbar:horizontal {
+  display: none;
+}
+
+/* =========================================================
+   TABLE STRUCTURE (STRUCTURAL)
+========================================================= */
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+
+table-layout: fixed;
+  min-width: max-content;
+}
+
+th, td {
+  box-sizing: border-box;
+  padding: var(--cell-padding);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  background: var(--color-bg);
+}
+
+/* scrolling cells */
+td, th {
+  z-index: 1;
+}
+
+/* sticky edges */
+.sticky {
+  position: sticky;
+  background: var(--color-sticky);
+  z-index: 2;
+}
+
+/* corner intersections */
+.corner {
+  z-index: 3;
+}
+
+/* left student column */
+.student-col {
+  left: 0;
+  width: max-content;
+}
+
+.fixed-width {
+  width: var(--col-width-default);
+  min-width: var(--col-width-default);
+}
+
+thead th {
+  background: var(--color-header);
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+<header>
+  Gradebook Header
+</header>
+
+<main>
+
+  <div class="top-scroll" id="topScroll">
+    <div class="top-scroll-inner" id="topScrollInner"></div>
+  </div>
+
+  <div class="table-container" id="tableContainer">
+    <table id="gradeTable"></table>
+  </div>
+
+</main>
+
+<footer>
+  Footer
+</footer>
+
+</div>
+
+<script>
+
+/* =========================================================
+   CONFIGURATION OBJECT
+   ---------------------------------------------------------
+   Defines structural layout WITHOUT DOM measurement.
+========================================================= */
+
+const viewConfig = {
+  topRows: [
+    { lines: 1 },
+    { lines: 2 }
+  ],
+  fixedRightCols: 2
+};
+
+const TOTAL_ROWS = 150;
+const TOTAL_COLS = 25;
+
+
+/* =========================================================
+   HEIGHT RESOLUTION
+   ---------------------------------------------------------
+   Converts semantic row definition → CSS variable usage.
+========================================================= */
+
+function getRowHeight(lines) {
+  return lines === 2
+    ? 'var(--row-height-2lines)'
+    : 'var(--row-height-1line)';
+}
+
+
+/* =========================================================
+   STICKY TOP OFFSET CALCULATION
+   ---------------------------------------------------------
+   IMPORTANT:
+   We DO NOT measure DOM elements.
+   We accumulate predictable heights using config.
+========================================================= */
+
+function calculateTopOffsets() {
+
+  let offsets = [];
+  let accumulated = '0px';
+
+  viewConfig.topRows.forEach((row, index) => {
+
+    offsets.push(accumulated);
+
+    const heightVar =
+      row.lines === 2
+        ? 'var(--row-height-2lines)'
+        : 'var(--row-height-1line)';
+
+    accumulated =
+      `calc(${accumulated} + ${heightVar})`;
+  });
+
+  return offsets;
+}
+
+
+/* =========================================================
+   RIGHT OFFSET CALCULATION
+   ---------------------------------------------------------
+   Fixed-right columns rely ONLY on:
+     column index × default width
+========================================================= */
+
+function calculateRightOffset(colIndexFromRight) {
+  if (colIndexFromRight === 0) return '0px';
+
+  return `calc(${colIndexFromRight} * var(--col-width-default))`;
+}
+
+
+/* =========================================================
+   TABLE GENERATION
+========================================================= */
+
+function buildTable() {
+
+  const table = document.getElementById('gradeTable');
+  const thead = document.createElement('thead');
+  const tbody = document.createElement('tbody');
+
+  const topOffsets = calculateTopOffsets();
+
+  /* =============================
+     HEADER ROWS
+  ============================= */
+
+  viewConfig.topRows.forEach((row, rowIndex) => {
+
+    const tr = document.createElement('tr');
+
+    const height = getRowHeight(row.lines);
+
+    for (let col = 0; col <= TOTAL_COLS; col++) {
+
+      const th = document.createElement('th');
+
+      th.style.height = height;
+      th.textContent =
+        col === 0
+          ? "Student"
+          : `H${rowIndex+1}-${col}`;
+
+      /* LEFT STICKY */
+      if (col === 0) {
+        th.classList.add('sticky','student-col','corner');
+      }
+      else {
+        th.classList.add('fixed-width');
+      }
+
+      /* TOP STICKY */
+      th.classList.add('sticky');
+      th.style.top = topOffsets[rowIndex];
+
+      /* RIGHT STICKY */
+      const rightStart =
+        TOTAL_COLS - viewConfig.fixedRightCols + 1;
+
+      if (col >= rightStart) {
+
+        const indexFromRight =
+          TOTAL_COLS - col;
+
+        th.classList.add('sticky');
+
+        th.style.right =
+          calculateRightOffset(indexFromRight);
+
+        th.classList.add('corner');
+      }
+
+      tr.appendChild(th);
+    }
+
+    thead.appendChild(tr);
+  });
+
+  /* =============================
+     BODY ROWS
+  ============================= */
+
+  for (let r = 0; r < TOTAL_ROWS; r++) {
+
+    const tr = document.createElement('tr');
+
+    for (let c = 0; c <= TOTAL_COLS; c++) {
+
+      const td = document.createElement('td');
+
+      if (c === 0) {
+        td.textContent = `Student ${r+1}`;
+        td.classList.add('sticky','student-col');
+      } else {
+        td.textContent = Math.floor(Math.random()*10);
+        td.classList.add('fixed-width');
+      }
+
+      /* RIGHT FIXED CELLS */
+      const rightStart =
+        TOTAL_COLS - viewConfig.fixedRightCols + 1;
+
+      if (c >= rightStart) {
+
+        const indexFromRight =
+          TOTAL_COLS - c;
+
+        td.classList.add('sticky');
+
+        td.style.right =
+          calculateRightOffset(indexFromRight);
+      }
+
+      tr.appendChild(td);
+    }
+
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(thead);
+  table.appendChild(tbody);
+}
+
+buildTable();
+
+
+/* =========================================================
+   TOP SCROLLBAR SYNCHRONIZATION
+========================================================= */
+
+const tableContainer =
+  document.getElementById('tableContainer');
+
+const topScroll =
+  document.getElementById('topScroll');
+
+const topScrollInner =
+  document.getElementById('topScrollInner');
+
+let isSyncing = false;
+
+/* Sync scrolling both ways */
+
+topScroll.addEventListener('scroll', () => {
+  if (isSyncing) return;
+  isSyncing = true;
+  tableContainer.scrollLeft = topScroll.scrollLeft;
+  isSyncing = false;
+});
+
+tableContainer.addEventListener('scroll', () => {
+  if (isSyncing) return;
+  isSyncing = true;
+  topScroll.scrollLeft = tableContainer.scrollLeft;
+  isSyncing = false;
+});
+
+
+/* =========================================================
+   RESIZE OBSERVER
+   ---------------------------------------------------------
+   ONLY ALLOWED DOM MEASUREMENT.
+   We read table.scrollWidth to size
+   the fake scrollbar content.
+========================================================= */
+
+const table =
+  document.getElementById('gradeTable');
+
+const ro = new ResizeObserver(() => {
+  topScrollInner.style.width =
+    table.scrollWidth + 'px';
+});
+
+ro.observe(table);
+
+</script>
+
+</body>
+</html>
