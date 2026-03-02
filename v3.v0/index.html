@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher's Gradebook</title>
+  <style>
+    /* ============================================================
+       CSS VARIABLES — Design Tokens
+       All cosmetic AND structural sizing values are defined here
+       so the design system can be easily overridden.
+       ============================================================ */
+    :root {
+      /* ---- Structural Sizing ---- */
+      --col-width-default: 100px;
+      --row-height-1line: 40px;
+      --row-height-2lines: 60px;
+
+      /* ---- Cosmetic: Colors ---- */
+      --color-bg: #ffffff;
+      --color-header-bg: #f7f8fa;
+      --color-border: #e2e2e2;
+      --color-text: #333333;
+      --color-text-light: #777777;
+      --color-sticky-left-bg: #f9fafb;
+      --color-sticky-right-bg: #f1f4f9;
+      --color-corner-bg: #e8ecf2;
+      --color-row-alt: #f5f6f8;
+      --color-row-alt-sticky-left: #f0f1f4;
+      --color-row-alt-sticky-right: #e8edf4;
+      --color-header-text: #1a1a2e;
+      --color-footer-bg: #f7f8fa;
+      --color-scrollbar-track: #f1f1f1;
+      --color-scrollbar-thumb: #b0b0b0;
+      --color-scrollbar-thumb-hover: #888888;
+
+      /* ---- Cosmetic: Typography ---- */
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-size-base: 13px;
+      --font-size-header: 12px;
+      --font-size-title: 18px;
+      --font-size-small: 11px;
+
+      /* ---- Cosmetic: Spacing & Borders ---- */
+      --cell-padding-y: 6px;
+      --cell-padding-x: 10px;
+      --header-page-padding: 14px 20px;
+      --border-style: 1px solid var(--color-border);
+    }
+
+    /* ============================================================
+       STRUCTURAL CSS — Reset & Full-Viewport Flex Layout
+       ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /*
+     * .page uses a Flex column to fill the exact viewport height (100vh).
+     * Header and Footer are flex-shrink: 0 (fixed size).
+     * .main-content gets flex-grow: 1 (fills remaining space).
+     */
+    .page {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+      background: var(--color-bg);
+    }
+
+    /* ============================================================
+       STRUCTURAL CSS — Header & Footer
+       ============================================================ */
+    header {
+      flex-shrink: 0;
+      padding: var(--header-page-padding);
+      background: var(--color-header-bg);
+      border-bottom: var(--border-style);
+    }
+
+    header h1 {
+      font-size: var(--font-size-title);
+      color: var(--color-header-text);
+      font-weight: 600;
+    }
+
+    footer {
+      flex-shrink: 0;
+      padding: 8px 20px;
+      background: var(--color-footer-bg);
+      border-top: var(--border-style);
+      font-size: var(--font-size-small);
+      color: var(--color-text-light);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ============================================================
+       STRUCTURAL CSS — Main Content (Top Scrollbar + Table)
+       ============================================================ */
+    .main-content {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ---- Top Scrollbar Container ----
+     * Contains a dummy <div> whose width is synced to the table's scrollWidth.
+     * This creates a scrollbar that mirrors the table's horizontal extent.
+     */
+    .top-scrollbar-container {
+      flex-shrink: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      height: 16px;
+      border-bottom: var(--border-style);
+      background: var(--color-header-bg);
+    }
+
+    .top-scrollbar-dummy {
+      height: 1px;
+    }
+
+    /* ---- Table Container ----
+     * CLIPPING STRATEGY to hide horizontal scrollbar, keep vertical:
+     *
+     * .table-container-wrapper (OUTER):
+     *   - flex-grow: 1 fills remaining vertical space.
+     *   - overflow: hidden clips whatever extends beyond its bounds.
+     *   - Does NOT scroll itself, so it is NOT a scroll ancestor.
+     *     This means position:sticky inside .table-container still works
+     *     because .table-container remains the ONLY scrolling ancestor.
+     *
+     * .table-container (INNER):
+     *   - The single scroll container (overflow: auto on both axes).
+     *   - height: calc(100% + 15px) makes it 15px taller than the wrapper.
+     *   - The native horizontal scrollbar (~15px) sits in that overflow zone
+     *     and is clipped by the wrapper's overflow:hidden.
+     *   - The vertical scrollbar remains fully visible on the right edge.
+     *   - position:sticky works for headers AND columns because this is
+     *     the single scrolling ancestor.
+     */
+    .table-container-wrapper {
+      flex-grow: 1;
+      overflow: hidden;
+    }
+
+    .table-container {
+      width: 100%;
+      height: calc(100% + 15px);
+      overflow: auto;
+    }
+
+    /* Firefox: styled thin scrollbars */
+    .table-container {
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
+    }
+
+    /* WebKit: styled scrollbars */
+    .table-container::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .table-container::-webkit-scrollbar-track {
+      background: var(--color-scrollbar-track);
+    }
+    .table-container::-webkit-scrollbar-thumb {
+      background: var(--color-scrollbar-thumb);
+      border-radius: 4px;
+    }
+    .table-container::-webkit-scrollbar-thumb:hover {
+      background: var(--color-scrollbar-thumb-hover);
+    }
+
+    /* ============================================================
+       STRUCTURAL CSS — Table Base
+       ============================================================ */
+
+    /*
+     * border-collapse: separate + border-spacing: 0 is REQUIRED so that
+     * sticky cells keep their borders and don't collapse/disappear on scroll.
+     */
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: max-content;
+    }
+
+    th, td {
+      padding: var(--cell-padding-y) var(--cell-padding-x);
+      border-right: var(--border-style);
+      border-bottom: var(--border-style);
+      text-align: left;
+      vertical-align: middle;
+      background: var(--color-bg);
+    }
+
+    th {
+      font-size: var(--font-size-header);
+      font-weight: 600;
+      color: var(--color-header-text);
+      background: var(--color-header-bg);
+    }
+
+    /* ============================================================
+       STRUCTURAL CSS — Sticky Positioning & Z-Index Strategy
+       ============================================================
+     *
+     * Z-INDEX LAYERS (managed carefully to avoid overlapping issues):
+     *
+     *   z-index: 1  →  Regular scrolling body cells (default, set on <td>)
+     *   z-index: 2  →  Single-axis sticky edges:
+     *                   - Left column (sticky-left)
+     *                   - Right columns (sticky-right)
+     *                   - Top header rows (thead th)
+     *   z-index: 3  →  Intersection corners where two sticky axes meet:
+     *                   - Top-left (thead th.sticky-left)
+     *                   - Top-right (thead th.sticky-right)
+     *
+     * This ensures corners always paint on top of edges, and edges always
+     * paint on top of scrolling cells. Without this, scroll content would
+     * bleed through sticky elements.
+     */
+
+    /* Body cells: base z-index */
+    td {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- Sticky LEFT column (Student Name) ----
+     * Pure CSS: position: sticky; left: 0;
+     * No JavaScript calculation needed.
+     * width: max-content adapts to the longest student name.
+     */
+    .sticky-left {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--color-sticky-left-bg);
+      white-space: nowrap;
+      width: max-content;
+    }
+
+    /* ---- Sticky RIGHT columns ----
+     * The `right` offset is applied inline by JavaScript (see buildTable).
+     * All fixed-right columns share var(--col-width-default) width.
+     */
+    .sticky-right {
+      position: sticky;
+      z-index: 2;
+      background: var(--color-sticky-right-bg);
+    }
+
+    /* ---- Sticky TOP rows (header) ----
+     * position: sticky is set here; the `top` and `height` values are
+     * applied as inline styles by JavaScript, using CSS variable math.
+     * No DOM measurement (getBoundingClientRect) is ever used.
+     */
+    thead th {
+      position: sticky;
+      z-index: 2;
+    }
+
+    /* ---- Intersecting Corners ----
+     * Where a sticky header row meets a sticky left/right column,
+     * z-index must be 3 to sit above both single-axis sticky elements.
+     */
+    thead th.sticky-left {
+      z-index: 3;
+      background: var(--color-corner-bg);
+    }
+
+    thead th.sticky-right {
+      z-index: 3;
+      background: var(--color-corner-bg);
+    }
+
+    /* ============================================================
+       COSMETIC CSS — Visual Polish
+       ============================================================ */
+
+    /* Alternating row backgrounds.
+     * IMPORTANT: sticky cells need explicit opaque backgrounds so
+     * scrolling content does not bleed through from underneath.
+     */
+    tbody tr:nth-child(even) td {
+      background: var(--color-row-alt);
+    }
+    tbody tr:nth-child(even) td.sticky-left {
+      background: var(--color-row-alt-sticky-left);
+    }
+    tbody tr:nth-child(even) td.sticky-right {
+      background: var(--color-row-alt-sticky-right);
+    }
+
+    /* Subtle shadow on the left sticky column to hint at scrollable area */
+    .sticky-left {
+      box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Sub-header row styling (smaller, lighter text with tighter line-height) */
+    .sub-header {
+      font-weight: 400;
+      color: var(--color-text-light);
+      font-size: var(--font-size-small);
+      line-height: 1.3;
+    }
+
+    /* Center-align numeric score cells for readability */
+    td.score-cell {
+      text-align: center;
+    }
+
+    /* Grade letter styling */
+    td.grade-cell {
+      text-align: center;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- ======== HEADER (fixed at top) ======== -->
+    <header>
+      <h1>Teacher's Gradebook</h1>
+    </header>
+
+    <!-- ======== MAIN CONTENT ======== -->
+    <div class="main-content">
+      <!--
+        Top Scrollbar: A custom container that mirrors the table's horizontal
+        scroll extent. A dummy <div> inside is resized by JS to match the
+        table's scrollWidth, creating a synchronized scrollbar.
+      -->
+      <div class="top-scrollbar-container" id="topScrollbar">
+        <div class="top-scrollbar-dummy" id="topScrollbarDummy"></div>
+      </div>
+
+      <!--
+        Table Container Wrapper: overflow:hidden clips the horizontal scrollbar.
+        It does NOT scroll itself, so it is not a scroll ancestor —
+        position:sticky inside .table-container still works correctly.
+
+        Table Container: Single scroll container (overflow:auto both axes).
+        height: calc(100% + 15px) extends it below the wrapper so the native
+        horizontal scrollbar is clipped. Vertical scrollbar stays visible.
+      -->
+      <div class="table-container-wrapper">
+        <div class="table-container" id="tableContainer">
+          <table id="gradebookTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== FOOTER (fixed at bottom) ======== -->
+    <footer>
+      <span id="footerInfo">Loading...</span>
+      <span>Teacher's Gradebook v1.0</span>
+    </footer>
+  </div>
+
+  <script>
+    /**
+     * ================================================================
+     * Teacher's Gradebook — Dynamic Table Generator
+     * ================================================================
+     *
+     * ARCHITECTURE OVERVIEW:
+     * 1. A CONFIG object defines the view: number of header rows, their
+     *    line counts (which determine heights), and how many columns
+     *    are pinned to the right.
+     * 2. Dummy data is generated (150 students × 25 columns).
+     * 3. The table is built entirely in JavaScript, with sticky offsets
+     *    applied as inline styles using CSS variable math — NO DOM
+     *    measurement (getBoundingClientRect) is ever used.
+     * 4. A ResizeObserver + scroll listeners synchronize the custom
+     *    top scrollbar with the table container.
+     */
+    (function () {
+      'use strict';
+
+      /* ==============================================================
+         CONFIGURATION
+         ==============================================================
+         This config object drives the entire table structure.
+         Changing these values will alter header row count/heights
+         and how many columns pin to the right edge.
+
+         topRows: Array of row descriptors.
+           - `lines: 1` → row height = var(--row-height-1line) = 40px
+           - `lines: 2` → row height = var(--row-height-2lines) = 60px
+
+         fixedRightCols: How many columns stick to the right edge.
+      */
+      var CONFIG = {
+        topRows: [
+          { lines: 1 },  // Row 0: Main column headers (single line)
+          { lines: 2 }   // Row 1: Sub-headers — date + max points (two lines)
+        ],
+        fixedRightCols: 2,   // Last 2 columns (Average, Final Grade) are pinned right
+        totalRows: 150,      // Number of student rows
+        totalCols: 25        // Total columns including Student Name, assignments, Average, Final
+      };
+
+      /* ==============================================================
+         DUMMY DATA — Name Pools
+         ============================================================== */
+      var FIRST_NAMES = [
+        'Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'Ethan', 'Sophia', 'Mason',
+        'Isabella', 'William', 'Mia', 'James', 'Charlotte', 'Benjamin', 'Amelia',
+        'Lucas', 'Harper', 'Henry', 'Evelyn', 'Alexander', 'Abigail', 'Michael',
+        'Emily', 'Daniel', 'Elizabeth', 'Jacob', 'Sofia', 'Logan', 'Avery',
+        'Jackson', 'Ella', 'Sebastian', 'Scarlett', 'Aiden', 'Grace', 'Matthew',
+        'Victoria', 'Samuel', 'Riley', 'David', 'Aria', 'Joseph', 'Lily',
+        'Carter', 'Aurora', 'Owen', 'Chloe', 'Wyatt', 'Penelope', 'John',
+        'Layla'
+      ];
+
+      var LAST_NAMES = [
+        'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller',
+        'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez',
+        'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin',
+        'Lee', 'Perez', 'Thompson', 'White', 'Harris', 'Sanchez', 'Clark',
+        'Ramirez', 'Lewis', 'Robinson', 'Walker', 'Young', 'Allen', 'King',
+        'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores', 'Green',
+        'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell',
+        'Carter', 'Roberts'
+      ];
+
+      var MONTHS = [
+        'Sep', 'Sep', 'Sep', 'Oct', 'Oct', 'Oct', 'Nov', 'Nov',
+        'Nov', 'Dec', 'Dec', 'Jan', 'Jan', 'Feb', 'Feb', 'Feb',
+        'Mar', 'Mar', 'Mar', 'Apr', 'Apr', 'Apr', 'May'
+      ];
+
+      /* ==============================================================
+         DATA GENERATION FUNCTIONS
+         ============================================================== */
+
+      /**
+       * Generate a unique student name by cycling through first/last name
+       * arrays and appending a letter suffix when we wrap around.
+       * @param {number} index - Row index (0-based)
+       * @returns {string} "Last, First" or "Last, First B" for duplicates
+       */
+      function generateStudentName(index) {
+        var first = FIRST_NAMES[index % FIRST_NAMES.length];
+        var last = LAST_NAMES[index % LAST_NAMES.length];
+        var cycle = Math.floor(index / FIRST_NAMES.length);
+        if (cycle > 0) {
+          return last + ', ' + first + ' ' + String.fromCharCode(65 + cycle);
+        }
+        return last + ', ' + first;
+      }
+
+      /**
+       * Random integer in [min, max] inclusive.
+       */
+      function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      /**
+       * Build the full dataset: 150 rows × 25 columns.
+       *
+       * Column layout:
+       *   [0]          Student Name  (sticky left)
+       *   [1..22]      Assignment 1-22 scores
+       *   [23]         Average       (sticky right — 2nd from right)
+       *   [24]         Final Grade   (sticky right — rightmost)
+       *
+       * @returns {Array<Array<string|number>>} 2D data array
+       */
+      function generateData() {
+        var data = [];
+        var numAssignments = CONFIG.totalCols - 3; // 25 - 3 = 22 assignments
+
+        for (var r = 0; r < CONFIG.totalRows; r++) {
+          var row = [];
+
+          // Column 0: Student name
+          row.push(generateStudentName(r));
+
+          // Columns 1-22: Assignment scores (45-100)
+          var sum = 0;
+          for (var a = 0; a < numAssignments; a++) {
+            var score = randomInt(45, 100);
+            row.push(score);
+            sum += score;
+          }
+
+          // Column 23: Weighted average
+          var avg = (sum / numAssignments).toFixed(1);
+          row.push(avg);
+
+          // Column 24: Letter grade based on average
+          var avgNum = parseFloat(avg);
+          var grade;
+          if (avgNum >= 90)      grade = 'A';
+          else if (avgNum >= 80) grade = 'B';
+          else if (avgNum >= 70) grade = 'C';
+          else if (avgNum >= 60) grade = 'D';
+          else                   grade = 'F';
+          row.push(grade);
+
+          data.push(row);
+        }
+        return data;
+      }
+
+      /**
+       * Generate column header labels for both header rows.
+       * Row 0: Short labels ("Asgn 1", "Average", etc.)
+       * Row 1: Details ("Sep 5\n100 pts", "Weighted", etc.)
+       *
+       * @returns {{ row1: string[], row2: string[] }}
+       */
+      function generateHeaders() {
+        var row1 = [];
+        var row2 = [];
+        var numAssignments = CONFIG.totalCols - 3;
+
+        // Col 0: Student Name
+        row1.push('Student Name');
+        row2.push('');
+
+        // Cols 1-22: Assignment columns
+        for (var a = 0; a < numAssignments; a++) {
+          row1.push('Asgn ' + (a + 1));
+          var month = MONTHS[a % MONTHS.length];
+          var day = randomInt(1, 28);
+          row2.push(month + ' ' + day + '\n100 pts');
+        }
+
+        // Col 23: Average
+        row1.push('Average');
+        row2.push('Weighted');
+
+        // Col 24: Final Grade
+        row1.push('Final');
+        row2.push('Letter Grade');
+
+        return { row1: row1, row2: row2 };
+      }
+
+      /* ==============================================================
+         TABLE CONSTRUCTION
+         ==============================================================
+
+         STICKY MATH — EXPLAINED (No DOM Measurement!)
+         -----------------------------------------------
+         All sticky `top` and `right` offsets are calculated from the
+         CONFIG and CSS variable names. We NEVER call getBoundingClientRect()
+         or measure any rendered DOM element. Everything is predictable
+         because we control the heights and widths via CSS variables.
+
+         ■ TOP offsets (header rows):
+           Each header row's height is determined by its `lines` config:
+             lines: 1 → height = var(--row-height-1line)   = 40px
+             lines: 2 → height = var(--row-height-2lines)  = 60px
+
+           Each row's `top` is the cumulative sum of all rows above:
+             Row 0: top = 0px
+             Row 1: top = height(Row 0) = var(--row-height-1line)
+             Row 2: top = height(Row 0) + height(Row 1)
+                       = calc(var(--row-height-1line) + var(--row-height-2lines))
+           These are built as CSS `calc()` strings from the variable names.
+
+         ■ RIGHT offsets (fixed right columns):
+           All right columns use var(--col-width-default) width.
+           The offset for each column is how many columns sit to its right:
+             Rightmost column: right = 0px
+             Next inward:      right = calc(var(--col-width-default) * 1)
+             Next:             right = calc(var(--col-width-default) * 2)
+           Formula: right = calc(var(--col-width-default) * positionFromRight)
+
+         ■ LEFT offset (student name column):
+           Just one column — `position: sticky; left: 0;` via CSS.
+           No JS math needed at all.
+      */
+
+      function buildTable() {
+        var data = generateData();
+        var headers = generateHeaders();
+        var thead = document.getElementById('tableHead');
+        var tbody = document.getElementById('tableBody');
+
+        var fixedRight = CONFIG.fixedRightCols;
+        var totalCols = CONFIG.totalCols;
+
+        // The index where fixed-right columns begin
+        // e.g., with 25 cols and 2 fixed right → cols 23 and 24 are sticky-right
+        var firstFixedRightIndex = totalCols - fixedRight;
+
+        /* ----------------------------------------------------------
+           STEP 1: Pre-calculate TOP offsets and HEIGHTS for header rows.
+
+           We build arrays of CSS value strings, NOT pixel numbers.
+           This way the offsets stay in sync with the CSS variables,
+           and no runtime DOM measurement is required.
+        ---------------------------------------------------------- */
+        var topOffsets = [];   // CSS strings for `top:` of each header row
+        var heightValues = []; // CSS strings for `height:` of each header row
+        var cumulativeParts = []; // Accumulates height variable names
+
+        for (var r = 0; r < CONFIG.topRows.length; r++) {
+          var rowConfig = CONFIG.topRows[r];
+
+          // Pick the CSS variable that matches this row's line count
+          var heightVar = (rowConfig.lines === 1)
+            ? 'var(--row-height-1line)'
+            : 'var(--row-height-2lines)';
+
+          heightValues.push(heightVar);
+
+          // Calculate the `top` offset: sum of all previous row heights
+          if (r === 0) {
+            // First row always starts at the top
+            topOffsets.push('0px');
+          } else if (cumulativeParts.length === 1) {
+            // Only one term — no calc() wrapper needed
+            topOffsets.push(cumulativeParts[0]);
+          } else {
+            // Multiple terms — wrap in calc()
+            topOffsets.push('calc(' + cumulativeParts.join(' + ') + ')');
+          }
+
+          // Add this row's height to the accumulator for subsequent rows
+          cumulativeParts.push(heightVar);
+        }
+
+        /* ----------------------------------------------------------
+           STEP 2: Build <thead> rows.
+
+           For each header row defined in CONFIG.topRows, we create a
+           <tr> and populate it with <th> cells. Each <th> gets:
+             - Inline `top` and `height` styles (from our pre-calculated arrays)
+             - Class `sticky-left` if it's column 0
+             - Class `sticky-right` + inline `right` offset if it's a fixed-right column
+        ---------------------------------------------------------- */
+        var headerData = [headers.row1, headers.row2];
+
+        for (var r = 0; r < CONFIG.topRows.length; r++) {
+          var tr = document.createElement('tr');
+
+          for (var c = 0; c < totalCols; c++) {
+            var th = document.createElement('th');
+            var label = headerData[r][c] || '';
+
+            // Row 1 (sub-header) may contain "\n" for multi-line content
+            if (r === 1 && label.indexOf('\n') !== -1) {
+              th.innerHTML = label.replace('\n', '<br>');
+              th.classList.add('sub-header');
+            } else {
+              th.textContent = label;
+              if (r === 1) th.classList.add('sub-header');
+            }
+
+            /*
+             * STICKY TOP: Apply inline `top` and `height` using CSS variable strings.
+             * This is the core of the "no DOM measurement" approach —
+             * we set `top: var(--row-height-1line)` rather than `top: 40px`,
+             * keeping values in sync with the design system.
+             */
+            th.style.top = topOffsets[r];
+            th.style.height = heightValues[r];
+
+            /*
+             * STICKY LEFT: Column 0 is the Student Name.
+             * CSS class handles `position: sticky; left: 0;`.
+             * When combined with thead (sticky top), z-index becomes 3 (corner).
+             */
+            if (c === 0) {
+              th.classList.add('sticky-left');
+            }
+
+            /*
+             * STICKY RIGHT: Columns at or beyond firstFixedRightIndex.
+             * The `right` offset is calculated from how many fixed columns
+             * sit to the right of this one:
+             *
+             *   positionFromRight = (totalCols - 1) - c
+             *
+             * Examples with fixedRightCols = 2, totalCols = 25:
+             *   Col 24 (Final):   positionFromRight = 0 → right: 0px
+             *   Col 23 (Average): positionFromRight = 1 → right: calc(var(--col-width-default) * 1)
+             */
+            if (c >= firstFixedRightIndex) {
+              th.classList.add('sticky-right');
+              var posFromRight = (totalCols - 1) - c;
+              if (posFromRight === 0) {
+                th.style.right = '0px';
+              } else {
+                th.style.right = 'calc(var(--col-width-default) * ' + posFromRight + ')';
+              }
+            }
+
+            // All columns except Student Name use the default fixed width
+            if (c !== 0) {
+              th.style.width = 'var(--col-width-default)';
+              th.style.minWidth = 'var(--col-width-default)';
+              th.style.maxWidth = 'var(--col-width-default)';
+            }
+
+            tr.appendChild(th);
+          }
+
+          thead.appendChild(tr);
+        }
+
+        /* ----------------------------------------------------------
+           STEP 3: Build <tbody> rows.
+
+           Uses a DocumentFragment for performance — appending 150 rows
+           of 25 cells each (3750 DOM nodes) in one batch.
+
+           Each <td> gets the same sticky-left / sticky-right logic as
+           the header, with inline `right` offsets for fixed-right cols.
+        ---------------------------------------------------------- */
+        var fragment = document.createDocumentFragment();
+
+        for (var r = 0; r < data.length; r++) {
+          var tr = document.createElement('tr');
+
+          for (var c = 0; c < totalCols; c++) {
+            var td = document.createElement('td');
+            td.textContent = data[r][c];
+
+            // Column 0: Student Name — sticky left
+            if (c === 0) {
+              td.classList.add('sticky-left');
+            }
+
+            // Assignment score columns: center-align
+            if (c >= 1 && c < firstFixedRightIndex) {
+              td.classList.add('score-cell');
+            }
+
+            // Average column: center-align
+            if (c === firstFixedRightIndex) {
+              td.classList.add('score-cell');
+            }
+
+            // Final Grade column: bold center
+            if (c === totalCols - 1) {
+              td.classList.add('grade-cell');
+            }
+
+            // Sticky right columns: apply class and inline `right` offset
+            if (c >= firstFixedRightIndex) {
+              td.classList.add('sticky-right');
+              var posFromRight = (totalCols - 1) - c;
+              if (posFromRight === 0) {
+                td.style.right = '0px';
+              } else {
+                td.style.right = 'calc(var(--col-width-default) * ' + posFromRight + ')';
+              }
+            }
+
+            // Fixed width for non-name columns
+            if (c !== 0) {
+              td.style.width = 'var(--col-width-default)';
+              td.style.minWidth = 'var(--col-width-default)';
+              td.style.maxWidth = 'var(--col-width-default)';
+            }
+
+            tr.appendChild(td);
+          }
+
+          fragment.appendChild(tr);
+        }
+
+        // Append all rows in one DOM operation for performance
+        tbody.appendChild(fragment);
+      }
+
+      /* ==============================================================
+         SCROLL SYNCHRONIZATION
+         ==============================================================
+
+         The Top Scrollbar and Table Container must stay in sync horizontally.
+         When one scrolls, the other mirrors the scrollLeft position.
+
+         ANTI-INFINITE-LOOP FLAG:
+         Setting `element.scrollLeft = value` fires a 'scroll' event on that
+         element. Without protection, this creates an infinite loop:
+           topScrollbar scrolls → sets tableContainer.scrollLeft → fires scroll
+           → sets topScrollbar.scrollLeft → fires scroll → ...
+
+         Solution: A shared `isSyncing` flag. When we programmatically set
+         scrollLeft, we set isSyncing = true. The other handler sees the flag,
+         resets it, and returns without propagating. This breaks the loop.
+      */
+      function setupScrollSync() {
+        var topScrollbar = document.getElementById('topScrollbar');
+        var tableContainer = document.getElementById('tableContainer');
+        var topDummy = document.getElementById('topScrollbarDummy');
+        var table = document.getElementById('gradebookTable');
+
+        // Shared flag to prevent infinite scroll-event loops
+        var isSyncing = false;
+
+        /* ---- ResizeObserver ----
+         * Watches the <table> element for size changes (e.g., window resize,
+         * dynamic content). When the table's scrollWidth changes, we update
+         * the dummy div to match, keeping the top scrollbar's range accurate.
+         */
+        var resizeObserver = new ResizeObserver(function () {
+          // Set the dummy div width to match the table's full scrollable width.
+          // This ensures the top scrollbar's thumb size and range matches the table.
+          topDummy.style.width = table.scrollWidth + 'px';
+        });
+        resizeObserver.observe(table);
+
+        /* ---- Sync: Top Scrollbar → Table Container ----
+         * When the user drags the top scrollbar, mirror its scrollLeft
+         * to the table container so the table scrolls horizontally.
+         */
+        topScrollbar.addEventListener('scroll', function () {
+          if (isSyncing) {
+            isSyncing = false;
+            return;
+          }
+          isSyncing = true;
+          tableContainer.scrollLeft = topScrollbar.scrollLeft;
+        });
+
+        /* ---- Sync: Table Container → Top Scrollbar ----
+         * When the user scrolls horizontally inside the table (e.g., trackpad,
+         * horizontal mouse wheel, shift+scroll), mirror its scrollLeft
+         * to the top scrollbar.
+         */
+        tableContainer.addEventListener('scroll', function () {
+          if (isSyncing) {
+            isSyncing = false;
+            return;
+          }
+          isSyncing = true;
+          topScrollbar.scrollLeft = tableContainer.scrollLeft;
+        });
+      }
+
+      /* ==============================================================
+         INITIALIZATION
+         ============================================================== */
+
+      // Build the table from config + dummy data
+      buildTable();
+
+      // Wire up scroll synchronization between top scrollbar and table
+      setupScrollSync();
+
+      // Update footer with actual row/column counts
+      document.getElementById('footerInfo').textContent =
+        CONFIG.totalRows + ' Students \u2022 ' + CONFIG.totalCols + ' Columns';
+
+    })();
+  </script>
+</body>
+</html>
