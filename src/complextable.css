@@ -1,0 +1,118 @@
+/* complextable.css */
+
+/* ── Container ──────────────────────────────────────────────────────────── */
+.ct-container {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* ── Top scrollbar mirror ───────────────────────────────────────────────── */
+/*
+ * This thin strip shows a horizontal scrollbar above the table content.
+ * Its inner div is sized to match the table width so the scrollbar range
+ * matches the table's horizontal scroll range.
+ */
+.ct-scroll-top {
+  overflow-x: scroll;
+  overflow-y: hidden;
+  flex-shrink: 0;
+  /* Custom scrollbar styling so it is visible on all platforms */
+  scrollbar-width: thin;          /* Firefox */
+  scrollbar-color: #aaa #f1f1f1;  /* Firefox */
+}
+
+.ct-scroll-top::-webkit-scrollbar {
+  height: 8px;
+}
+
+.ct-scroll-top::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.ct-scroll-top::-webkit-scrollbar-thumb {
+  background: #aaa;
+  border-radius: 4px;
+}
+
+.ct-scroll-top::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+/* The inner element gives the scrollbar a range equal to the table width */
+.ct-scroll-top-inner {
+  height: 1px; /* minimal height; width is set dynamically by JS */
+}
+
+/* ── Body wrapper (clips the native bottom horizontal scrollbar) ─────────── */
+.ct-body-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0; /* allow shrink in flex containers */
+}
+
+/* ── Scroll body ────────────────────────────────────────────────────────── */
+.ct-scroll-body {
+  overflow: auto;
+  height: 100%;
+  box-sizing: content-box;
+  /*
+   * padding-bottom pushes the native horizontal scrollbar out of the visible
+   * area (clipped by ct-body-wrapper).  The value must be ≥ the native
+   * scrollbar height (17 px covers all common OSes and browsers).
+   */
+  padding-bottom: 17px;
+}
+
+/* Hide WebKit horizontal scrollbar in the body (top mirror is used instead) */
+.ct-scroll-body::-webkit-scrollbar:horizontal {
+  display: none;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.ct-table {
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.ct-table td,
+.ct-table th {
+  border: 1px solid #d0d0d0;
+  padding: 8px 12px;
+  background-color: var(--ct-cell-bg, #ffffff);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+/* ── Fixed top rows ─────────────────────────────────────────────────────── */
+.ct-fixed-top {
+  position: sticky;
+  top: 0; /* overridden by JS for multi-row headers */
+  z-index: 2;
+  background-color: var(--ct-header-bg, #f0f0f0);
+}
+
+/* ── Fixed left columns ─────────────────────────────────────────────────── */
+.ct-fixed-left {
+  position: sticky;
+  left: 0; /* overridden by JS for multi-column setups */
+  z-index: 1;
+  background-color: var(--ct-fixed-col-bg, #f8f8f8);
+}
+
+/* ── Fixed right columns ────────────────────────────────────────────────── */
+.ct-fixed-right {
+  position: sticky;
+  right: 0; /* overridden by JS for multi-column setups */
+  z-index: 1;
+  background-color: var(--ct-fixed-col-bg, #f8f8f8);
+}
+
+/* ── Corner cells (fixed top + fixed left/right) ────────────────────────── */
+.ct-fixed-top.ct-fixed-left,
+.ct-fixed-top.ct-fixed-right {
+  z-index: 3;
+  background-color: var(--ct-corner-bg, #e8e8e8);
+}

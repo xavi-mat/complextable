@@ -1,0 +1,17 @@
+{
+  "name": "complextable",
+  "version": "1.0.0",
+  "description": "Build a complex HTML table with fixed columns and rows from a JS object",
+  "main": "src/complextable.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "license": "MIT"
+}
