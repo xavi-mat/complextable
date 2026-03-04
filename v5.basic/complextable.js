@@ -6,7 +6,7 @@ class ComplexTable {
         this.render();
     }
     render() {
-        let inn = "<table>";
+        let inn = "<table class='complex'>";
 
         // Headers
         inn += "<tr>";

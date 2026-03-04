@@ -8,16 +8,24 @@ img {
     overflow: auto;
 }
 
-th .center,
-th .right,
-td .center,
-td .right {
+table th.center,
+table th.right,
+table.complex td.center,
+table.complex td.right {
     width: 100px;
 }
 
-td .left {
+td.left {
     white-space: nowrap;
     width: max-content;
+    position: sticky;
+    left: 0;
+}
+
+td.right:last-of-type {
+    position: sticky;
+    right: 0;
+    background: green;
 }
 
 table {

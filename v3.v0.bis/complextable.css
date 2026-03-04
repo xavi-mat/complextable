@@ -156,9 +156,8 @@ footer {
     overflow: auto;
 }
 
-/* Firefox: styled thin scrollbars */
+/* Firefox: styled scrollbars */
 .table-container {
-    scrollbar-width: thin;
     scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
 }
 
