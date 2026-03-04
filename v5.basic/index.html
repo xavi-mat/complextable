@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./complextable.css">
+    <script src="./complextable.js"></script>
+    <script src="./mockData.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #cabecera {
+            background-color: #f0f0f0;
+            padding: 10px;
+            position: fixed;
+            top: 0;
+            width: 100%;
+        }
+
+        #pie {
+            background-color: #f0f0f0;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #contenido {
+            margin-top: 50px;
+            /* Altura de la cabecera */
+            margin-bottom: 50px;
+            /* Altura del pie */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="cabecera">CABECERA</div>
+    <div id="contenido">
+        <div id="table"></div>
+        <div id="pie">FOOTER</div>
+    </div>
+    <script>
+        const mockData = getMockData(
+            // {groups: 1, students: 5, assignments: 3}
+        );
+        const complexTable = new ComplexTable({
+            box: document.getElementById('table'),
+            headers: mockData.headers,
+            groups: mockData.groups
+        });
+    </script>
+</body>
+
+</html>
