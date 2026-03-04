@@ -6,12 +6,12 @@ class ComplexTable {
         this.render();
     }
     render() {
-        let inn = "<table class='complex'>";
+        let inn = "<table>";
 
         // Headers
         inn += "<tr>";
         this.headers.forEach(header => {
-            inn += `<th>${header.content}</th>`;
+            inn += `<th><div>${header.content}</div></th>`;
         });
         inn += "</tr>";
 
@@ -25,7 +25,7 @@ class ComplexTable {
                     if (index === 0) { classes = "left"; }
                     else if (index === row.length - 1 || index === row.length - 2) { classes = "right"; }
                     else { classes = "center"; }
-                    inn += `<td class="${classes}">${cell.content}</td>`;
+                    inn += `<td><div class="${classes}">${cell.content}</div></td>`;
                 });
                 inn += "</tr>";
             });

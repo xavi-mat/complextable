@@ -48,7 +48,7 @@ function getHeaders(numAssignments) {
       for (var a = 0; a < numAssignments; a++) {
         headers.push({
           pos: 'center',
-          content: `<img src="./imgs/icon.svg" alt="Icon"><p>Unidad ${a + 1}</p>`
+          content: `<img src="../imgs/icon.svg" alt="Icon"><p>Unidad ${a + 1}</p>`
         });
       }
       // Two average columns

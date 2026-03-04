@@ -2,30 +2,30 @@
 
 **Role:** You are an expert frontend web developer.
 
-**Task:** Create a structural skeleton for a Teacher's Gradebook (tabular data grid) to replace legacy code. Use strictly native HTML, CSS, and Vanilla JavaScript. No external frameworks or libraries.
+**Task:** Create a structural skeleton for a Teacher's Gradebook (tabular data grid). Use strictly native HTML, CSS, and Vanilla JavaScript. No external frameworks or libraries.
 
 **CSS Architecture & Styling (Crucial):**
-- I already have a design system. Your CSS must be structurally sound but visually basic.
+- Your CSS must be structurally sound but visually basic.
 - **Use CSS Variables (`:root`):** Define all cosmetic properties (colors, fonts, borders, paddings) AND structural sizing variables at the very top of the `<style>` block.
 - **Required Structural Variables:** Include `--col-width-default: 100px;`, `--row-height-1line: 40px;`, and `--row-height-2lines: 60px;`.
 - Clearly separate the structural CSS (Flexbox, sticky positioning, scrollbars) from the cosmetic CSS.
 
 **Design Philosophy & Layout:**
-- The page must take exact viewport height (`100vh`) using CSS Flexbox (`display: flex; flex-direction: column;`).
-- Fixed `<header>` at the top, fixed `<footer>` at the bottom.
+- The page will take exact viewport height (`100vh`).
+- The page will have a fixed `<header>` at the top, fixed `<footer>` at the bottom.
 - Main content:
   1. Custom Top Scrollbar container (for horizontal scroll only).
   2. Table Container (`flex-grow: 1; overflow-y: auto; overflow-x: auto;`).
-- **Scrollbar Strategy:** Hide the Table Container's bottom horizontal scrollbar using modern CSS (`scrollbar-width: none` for Firefox and `::-webkit-scrollbar { display: none; }` for Chrome/Safari), but keep the right vertical scrollbar visible. This creates a cleaner UX where users scroll horizontally via the top scrollbar only.
+- **Scrollbar Strategy:** Hide the Table Container's bottom horizontal scrollbar, but keep the right vertical scrollbar visible.
 
-**Table Structure & Simplified "Sticky" Logic (No DOM Measurement!):**
-- Use semantic HTML (`<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>`).
-- Set table `border-collapse: separate;` and `border-spacing: 0;` so sticky borders work correctly.
+**Table Structure & Simplified "Sticky" Logic:**
+- Use `<table>`, or CSS Grid, or what is best for the layout, but ensure it supports the sticky header and columns.
+- Ensure that sticky borders work correctly.
 - **Left Column (Fixed):** There is strictly ONE fixed left column (Student Name).
   - Apply `left: 0; position: sticky;` via CSS class.
   - Use `white-space: nowrap;` to prevent wrapping.
-  - Width adapts to content naturally (no `max-content` needed in width, just let it size naturally).
-- **Right Columns (Fixed):** All columns designated as "fixed right" strictly use `var(--col-width-default)` width.
+  - Width should adapt to content naturally.
+- **Right Columns (Fixed):** All columns except the first one, strictly use `var(--col-width-default)` width.
   - JS calculates `right` offset: first column is `right: 0`, second is `right: calc(1 * var(--col-width-default))`, third is `right: calc(2 * var(--col-width-default))`, etc.
   - Apply `position: sticky;` via CSS class.
 - **Scrolling Columns:** All non-fixed columns use `var(--col-width-default)` width.
@@ -53,7 +53,7 @@
     fixedRightCols: 2  // Number of columns sticky on the right
   };
   ```
-- Generate dummy data for 150 student rows and 25 total columns.
+- Generate dummy data for 60 student rows in three groups and 25 total columns. Every group has a first row with the group name and a last row with the group average.
 - JavaScript should:
   1. Read the config object
   2. Build the table HTML (string concatenation or DOM manipulation)
@@ -72,6 +72,5 @@
 
 **Additional Requirements:**
 - Add clear comments in JavaScript explaining the sticky math calculations
-- Include a brief comment at the top explaining the "no measurement" philosophy
 - Ensure all code fits in a single `index.html` file
 - Use consistent indentation and formatting
